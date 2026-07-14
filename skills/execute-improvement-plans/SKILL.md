@@ -31,6 +31,8 @@ If the plan is stale relative to the current code:
 - propose the smallest adjustment that preserves the plan's intent;
 - request renewed approval when the adjustment materially changes scope or architecture.
 
+If user feedback reveals that the plan itself does not represent the intended product behavior, distinguish the plan defect from an implementation defect. Stop implementation, report the exact intent-to-plan delta, and let the user revise the plan rather than improvising a different architecture. After plan artifacts are updated, reread the complete index and affected plans, reassess dependencies and validation, and require renewed approval for materially changed scope unless it is already covered by explicit authorization.
+
 ## Explain before editing
 
 Inspect enough current code to verify the plan, then explain:
@@ -86,6 +88,8 @@ For every review round:
 
 Repeat until the user explicitly says the implementation is accepted or asks to commit. Do not infer acceptance from silence or from a successful test run.
 
+Review findings may arrive after the plan has been committed. Treat actionable post-commit feedback as a follow-up correction to that plan: use the same verify, fix, and validate loop, and create a separate focused commit only when the user asks or a standing commit policy applies. Do not amend the accepted commit unless the user explicitly requests it.
+
 ## Commit the accepted plan
 
 When the user asks to commit, or has established a standing commit-after-validation policy:
@@ -104,6 +108,7 @@ After the commit, select the next plan and return to **Explain before editing**,
 - Prefer the repository's full gates when they can run without mutating protected or unrelated files.
 - If a global formatter or checker includes protected untracked plan artifacts, do not edit or stage those artifacts merely to make the gate pass. Run the narrowest equivalent check over changed implementation files and report exactly which global gate could not be claimed.
 - Never describe a scoped check as the full repository gate.
+- Track which working-tree state each validation result covers. Reuse a still-current passing result instead of rerunning an expensive gate solely because the user asks to commit; rerun when relevant code or configuration changed afterward, or when the earlier check did not cover the final scope.
 - At the end of a batch, run integration and end-to-end checks that cross plan boundaries. If a later accepted change intentionally invalidates an earlier test assumption, update that test within the later plan's scope and record the reason.
 - After every commit, re-check status so user-owned changes cannot silently leak into the next plan.
 
