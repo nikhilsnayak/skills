@@ -17,7 +17,9 @@ Require implementation plans produced by the [Improve skill](https://www.skills.
 4. If the plans are absent, incomplete, or not Improve-generated, stop and state that this skill requires Improve-generated plans. Do not generate replacement plans unless the user separately asks to use Improve.
 5. Read repository instructions and inspect the working tree before changing code. Preserve unrelated and user-owned changes.
 
-Treat plan files as control inputs, not implementation files. Do not edit, delete, stage, format, or commit them unless the user explicitly requests it or repository instructions require it. If a plan asks to update its own status but the user has told you to leave plan artifacts untouched, the user's instruction wins; report completion outside the plan instead.
+Treat plan files as mutable execution records, not implementation files. Update the plan index, status, checklists, or execution notes when useful for accurately tracking progress, and follow any plan-specific instructions for maintaining those artifacts. Do not delete or broadly reformat plan artifacts unless the user explicitly requests it or repository instructions require it.
+
+Keep the entire plans directory out of implementation commits. Plan artifacts may be modified or newly created during execution, but do not stage or commit them; leave them in the working tree for the user to review separately. If the user has told you to leave plan artifacts untouched, that instruction wins and completion must be reported outside the plans directory.
 
 Record the active execution policy before starting: branch, plan order, approval mode, review mode, commit policy, protected paths, and validation commands. Carry explicit standing instructions (for example, “one commit per plan” or “leave `plans/` untracked”) across later plans until the user changes them.
 
@@ -97,16 +99,16 @@ When the user asks to commit, or has established a standing commit-after-validat
 1. Review the final diff and working tree.
 2. Refresh affected documentation if it is stale.
 3. Run the final relevant validation gates.
-4. Stage explicit paths belonging only to the accepted plan. Exclude unrelated changes, protected paths, and plan artifacts unless explicitly authorized.
+4. Stage explicit implementation paths belonging only to the accepted plan. Exclude unrelated changes, protected paths, and the entire plans directory.
 5. Create one focused commit for the plan using the repository's commit style.
-6. Confirm the commit identifier and remaining working-tree state. Verify that protected untracked artifacts remain untracked and unstaged.
+6. Confirm the commit identifier and remaining working-tree state. Verify that every plan artifact remains unstaged, whether modified or untracked.
 
 After the commit, select the next plan and return to **Explain before editing**, unless it is already covered by explicit batch authorization.
 
 ## Handle validation without violating scope
 
 - Prefer the repository's full gates when they can run without mutating protected or unrelated files.
-- If a global formatter or checker includes protected untracked plan artifacts, do not edit or stage those artifacts merely to make the gate pass. Run the narrowest equivalent check over changed implementation files and report exactly which global gate could not be claimed.
+- If a global formatter or checker would rewrite plan artifacts unintentionally, exclude the plans directory and run the narrowest equivalent check over changed implementation files. Never stage plan artifacts merely to make a gate pass, and report exactly which global gate could not be claimed.
 - Never describe a scoped check as the full repository gate.
 - Track which working-tree state each validation result covers. Reuse a still-current passing result instead of rerunning an expensive gate solely because the user asks to commit; rerun when relevant code or configuration changed afterward, or when the earlier check did not cover the final scope.
 - At the end of a batch, run integration and end-to-end checks that cross plan boundaries. If a later accepted change intentionally invalidates an earlier test assumption, update that test within the later plan's scope and record the reason.
