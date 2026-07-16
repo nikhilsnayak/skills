@@ -80,9 +80,9 @@ Report the completed implementation, validation results, and any justified devia
 
 For every review round:
 
-1. Verify each finding against the current code.
+1. Verify each finding against the current code. Locate it by the symbol or code it describes, not the line number it cites — review findings routinely reference a pre-edit revision, so the cited line is often shifted or wrong.
 2. Fix findings that remain valid and add real value.
-3. Skip stale, incorrect, duplicate, or low-value findings with a brief concrete reason.
+3. Skip stale, incorrect, duplicate, or low-value findings with a brief concrete reason. When a finding comes from a static analyzer or review bot, verify it against the repository's frameworks and conventions before accepting it — analyzers routinely raise false positives they cannot model (compiler-based memoization, framework base classes, idiomatic library APIs). Classify each explicitly as genuine, false-positive, or intentional, and leave analyzer suppression or issue-tracker triage to the user unless asked.
 4. Keep changes within the approved plan.
 5. If feedback changes core architecture, public contracts, or plan scope, explain the impact and wait for explicit approval before implementing it.
 6. Re-run validation proportional to the changes.
@@ -107,6 +107,7 @@ After the commit, select the next plan and return to **Explain before editing**,
 
 ## Handle validation without violating scope
 
+- Lint, type, and test gates confirm a change is well-formed, not that it behaves correctly. For changes with a runtime or visual surface, confirm the actual behavior of the affected flow (or explicitly offer to) before reporting the fix as done — a passing build regularly coexists with a broken screen, and one finding's fix can regress a neighboring behavior.
 - Prefer the repository's full gates when they can run without mutating protected or unrelated files.
 - If a global formatter or checker would rewrite plan artifacts unintentionally, exclude the plans directory and run the narrowest equivalent check over changed implementation files. Never stage plan artifacts merely to make a gate pass, and report exactly which global gate could not be claimed.
 - Never describe a scoped check as the full repository gate.
