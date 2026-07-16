@@ -1,136 +1,152 @@
 ---
 name: execute-improvement-plans
-description: Execute implementation plans produced by the Improve skill through an explain, approve, implement, review, and commit workflow. Use when a repository contains self-contained Improve-generated plan files and the user wants to implement them sequentially, including when they explicitly batch-authorize remaining plans while preserving one coherent commit per accepted plan. Do not use to generate plans or when no Improve-generated plans exist.
+description: Execute implementation plans produced by the Improve skill through an explain, approve, implement, review, and commit workflow. Use when a repository contains self-contained Improve-generated plans that should be implemented sequentially or as an explicitly authorized batch, with one coherent commit per accepted plan. Do not use to generate plans or when no Improve-generated plans exist.
 ---
 
 # Execute Improvement Plans
 
-Implement one Improve-generated plan at a time while keeping the user in control of scope and commits.
+Execute Improve-generated plans while preserving user control over scope, review, and commits.
 
-## Verify the prerequisite
+## Establish the execution policy
 
-Require implementation plans produced by the [Improve skill](https://www.skills.sh/shadcn/improve/improve). This skill executes those plans; it does not replace Improve's read-only audit and planning work.
+1. Locate the plan index and selected plan. Read both completely.
+2. Confirm the plans are Improve-generated and self-contained: problem, affected code, intended
+   changes, and validation. If not, stop; do not invent replacement plans.
+3. Read repository instructions and inspect the branch, `HEAD`, upstream, and working tree.
+4. Record the branch, plan order, approval mode, review mode, commit policy, protected paths, and
+   validation commands. Carry explicit standing instructions until changed.
 
-1. Locate the plan index and referenced plan files. Prefer paths named by the user; otherwise inspect likely locations such as `plans/`.
-2. Read the index and the selected plan completely.
-3. Confirm the artifacts are self-contained implementation plans produced by Improve. They should identify the problem, affected code, intended changes, and validation.
-4. If the plans are absent, incomplete, or not Improve-generated, stop and state that this skill requires Improve-generated plans. Do not generate replacement plans unless the user separately asks to use Improve.
-5. Read repository instructions and inspect the working tree before changing code. Preserve unrelated and user-owned changes.
+Treat plan files as mutable execution records. Update statuses, checklists, and execution notes when
+useful, but never stage or commit the plans directory. A user instruction to leave plans untouched
+wins.
 
-Treat plan files as mutable execution records, not implementation files. Update the plan index, status, checklists, or execution notes when useful for accurately tracking progress, and follow any plan-specific instructions for maintaining those artifacts. Do not delete or broadly reformat plan artifacts unless the user explicitly requests it or repository instructions require it.
+Re-check the execution context at each plan boundary and after a merge, push, checkout, resumed
+session, or requested branch change. Do not continue on a stale or unexpected branch. An explicit
+branch instruction overrides a plan's suggested branch; record the deviation.
 
-Keep the entire plans directory out of implementation commits. Plan artifacts may be modified or newly created during execution, but do not stage or commit them; leave them in the working tree for the user to review separately. If the user has told you to leave plan artifacts untouched, that instruction wins and completion must be reported outside the plans directory.
+## Execute one plan
 
-Record the active execution policy before starting: branch, plan order, approval mode, review mode, commit policy, protected paths, and validation commands. Carry explicit standing instructions (for example, “one commit per plan” or “leave `plans/` untracked”) across later plans until the user changes them.
+### Select and explain
 
-## Select one plan
+Choose the next incomplete plan in dependency order and verify it against current code. Treat its
+implementation details as a design hypothesis; repository architecture, source-of-truth references,
+and explicit user feedback outrank stale prescriptions.
 
-Choose the next incomplete plan from the index, respecting dependencies and documented order. By default, approval applies to one plan only.
+If assumptions are stale, explain the drift and propose the smallest intent-preserving adjustment.
+Request renewed approval only when scope or architecture materially changes. If the plan describes
+the wrong product behavior, report the intent-to-plan mismatch and let the user revise it.
 
-If the plan is stale relative to the current code:
+Before editing, explain:
 
-- explain which assumptions no longer hold;
-- propose the smallest adjustment that preserves the plan's intent;
-- request renewed approval when the adjustment materially changes scope or architecture.
+- **What:** behavior, boundaries, and expected files;
+- **Why:** the concrete problem and benefit;
+- **How:** sequence, important choices, risks, validation, and exclusions.
 
-If user feedback reveals that the plan itself does not represent the intended product behavior, distinguish the plan defect from an implementation defect. Stop implementation, report the exact intent-to-plan delta, and let the user revise the plan rather than improvising a different architecture. After plan artifacts are updated, reread the complete index and affected plans, reassess dependencies and validation, and require renewed approval for materially changed scope unless it is already covered by explicit authorization.
+Wait for explicit approval. Approval applies to one plan unless the user clearly authorizes a
+defined batch.
 
-## Explain before editing
+### Implement
 
-Inspect enough current code to verify the plan, then explain:
+After approval:
 
-- **What:** the behavior, boundaries, and files expected to change;
-- **Why:** the concrete problem and the architectural or product benefit;
-- **How:** the implementation sequence, important design choices, migration concerns, and validation.
+1. Implement only the approved plan and necessary support, using the narrowest coherent design.
+2. Update relevant documentation when behavior or boundaries change.
+3. Run focused validation and inspect the isolated diff. Run appropriate repository-wide gates
+   before review, or after the final plan in an authorized batch.
+4. Report changes, validation, and justified deviations. Do not commit.
 
-Call out risks, likely review points, and anything intentionally out of scope. Do not modify implementation files yet.
+### Review
 
-End this phase by waiting for explicit approval. Approval for one plan does not approve later plans unless the user unmistakably batch-authorizes a defined set of plans as described below.
+For each finding:
 
-## Honor explicit batch authorization
+1. Locate it by symbol or behavior, not a possibly stale line number.
+2. Classify it as genuine, false-positive, or intentional.
+3. Fix genuine, valuable findings within scope; briefly explain skipped findings.
+4. Request approval before changing public contracts, core architecture, or plan scope.
+5. Re-run proportional validation and return for review.
 
-The user may explicitly replace the per-plan pauses, for example: “you have approval for every remaining plan; implement and verify all of them without stopping.” Do not infer this from “continue,” urgency, silence, or a general request to finish.
+Apply the same process to post-commit findings. Use a separate corrective commit when requested; do
+not amend unless explicitly asked.
 
-When the authorized set is unambiguous:
+### Commit
 
-1. State the resulting execution policy once, briefly. Do not repeat every plan explanation if the user waived that step.
-2. Still execute plans in dependency order, one coherent plan at a time. A batch is authorization to continue, not permission to blend scopes.
-3. Verify each plan against current code before implementing it. Treat plan details as a design hypothesis; preserve the intent while following current repository architecture and instructions.
-4. Run focused validation after each plan and inspect its isolated diff before moving on.
-5. Preserve one commit per plan only when commits are explicitly authorized by the current request or a standing commit instruction. Batch approval alone does not authorize commits.
-6. Do not pause between authorized plans unless a stop condition below applies.
-7. After the last plan, run the combined repository gates. Later plans can invalidate earlier tests or assumptions even when every focused check passed.
+Commit only after acceptance or under an explicit commit-after-validation policy:
 
-If the user requests one review at the end, provide a combined review handoff with the per-plan commits, deviations, and validation results.
+1. Review the final diff, working tree, and affected documentation.
+2. Reuse still-current validation; rerun only what the final changes invalidate.
+3. Stage explicit implementation paths, excluding unrelated changes, protected paths, and plans.
+4. Create one focused commit for the plan and confirm the commit ID and remaining status.
 
-## Implement after approval
+Then select and explain the next plan unless it is covered by batch authorization.
 
-After explicit approval:
+## Batch authorization
 
-1. Implement only the approved plan and necessary supporting changes.
-2. Follow repository conventions and use the narrowest coherent design.
-3. Verify assumptions against current code instead of copying plan details mechanically. Existing architecture, vendored source-of-truth repositories, and explicit user feedback outrank a stale implementation prescription in a plan.
-4. Update relevant documentation and JSDoc when behavior or boundaries changed.
-5. Run focused checks during implementation, then the repository's appropriate formatting, lint, typecheck, test, build, and coverage gates. In a batch, defer only genuinely global gates until the end; do not defer focused checks that isolate plan regressions.
-6. Do not commit.
+Only an unmistakable authorization for a defined set removes per-plan pauses. Under a batch:
 
-Report the completed implementation, validation results, and any justified deviation from the plan. Wait for user review unless an explicit batch authorization waived the per-plan review pause.
+- state the policy once;
+- keep dependency order and one coherent scope at a time;
+- verify each plan against current code;
+- run focused validation and inspect each isolated diff;
+- commit only if separately authorized;
+- stop only for a stop condition below;
+- run combined gates after the final plan.
 
-## Iterate on review
+A request for one review at the end permits a combined handoff; it does not permit blended commits.
 
-For every review round:
+## Adjacent work
 
-1. Verify each finding against the current code. Locate it by the symbol or code it describes, not the line number it cites — review findings routinely reference a pre-edit revision, so the cited line is often shifted or wrong.
-2. Fix findings that remain valid and add real value.
-3. Skip stale, incorrect, duplicate, or low-value findings with a brief concrete reason. When a finding comes from a static analyzer or review bot, verify it against the repository's frameworks and conventions before accepting it — analyzers routinely raise false positives they cannot model (compiler-based memoization, framework base classes, idiomatic library APIs). Classify each explicitly as genuine, false-positive, or intentional, and leave analyzer suppression or issue-tracker triage to the user unless asked.
-4. Keep changes within the approved plan.
-5. If feedback changes core architecture, public contracts, or plan scope, explain the impact and wait for explicit approval before implementing it.
-6. Re-run validation proportional to the changes.
-7. Return the implementation for another review without committing, unless the user has explicitly authorized commit-after-validation for this plan or batch.
+If validation exposes work outside the plan and the user explicitly asks to fix it:
 
-Repeat until the user explicitly says the implementation is accepted or asks to commit. Do not infer acceptance from silence or from a successful test run.
+- classify whether the issue was caused by, exposed by, or unrelated to the plan;
+- state the boundary and track it as a separate workstream;
+- pause the plan if the fix is needed for a trustworthy baseline, then resume it;
+- keep its diff, validation, review, and commit separate.
 
-Review findings may arrive after the plan has been committed. Treat actionable post-commit feedback as a follow-up correction to that plan: use the same verify, fix, and validate loop, and create a separate focused commit only when the user asks or a standing commit policy applies. Do not amend the accepted commit unless the user explicitly requests it.
+If “commit this” covers an accepted plan plus a previously disclosed adjacent fix, create the
+separate focused commits already described.
 
-## Commit the accepted plan
+## Validation integrity
 
-When the user asks to commit, or has established a standing commit-after-validation policy:
+- Validate runtime or visual behavior directly when relevant; static gates alone are insufficient.
+- Never describe a scoped check as a full gate.
+- Avoid formatters that rewrite protected plan artifacts; run the narrowest equivalent check.
+- Track which working-tree state each result covers and reuse current expensive results.
+- For long checks, record the command, expected runtime, retry policy, state, and outcome.
+- Diagnose flakes from exact artifacts or retries-disabled reproduction before changing assertions,
+  timeouts, or retries. Distinguish product defects, test synchronization, and runner latency.
+- Treat interrupted or incomplete runs as inconclusive. Recover surviving processes or artifacts,
+  then rerun the narrowest definitive check without discarding unrelated valid results.
 
-1. Review the final diff and working tree.
-2. Refresh affected documentation if it is stale.
-3. Run the final relevant validation gates.
-4. Stage explicit implementation paths belonging only to the accepted plan. Exclude unrelated changes, protected paths, and the entire plans directory.
-5. Create one focused commit for the plan using the repository's commit style.
-6. Confirm the commit identifier and remaining working-tree state. Verify that every plan artifact remains unstaged, whether modified or untracked.
+When required evidence exists only after commit and push:
 
-After the commit, select the next plan and return to **Explain before editing**, unless it is already covered by explicit batch authorization.
+1. Leave the plan `IN PROGRESS` and record the baseline, local evidence, expected jobs, success
+   criteria, and stop thresholds.
+2. Do not push or dispatch external work without authorization.
+3. When evidence arrives, verify it matches the relevant commit and configuration, record the
+   result, and set `DONE`, `REJECTED`, or `BLOCKED` as justified.
 
-## Handle validation without violating scope
+Do not call implementation-ready work fully validated while required external evidence is pending.
 
-- Lint, type, and test gates confirm a change is well-formed, not that it behaves correctly. For changes with a runtime or visual surface, confirm the actual behavior of the affected flow (or explicitly offer to) before reporting the fix as done — a passing build regularly coexists with a broken screen, and one finding's fix can regress a neighboring behavior.
-- Prefer the repository's full gates when they can run without mutating protected or unrelated files.
-- If a global formatter or checker would rewrite plan artifacts unintentionally, exclude the plans directory and run the narrowest equivalent check over changed implementation files. Never stage plan artifacts merely to make a gate pass, and report exactly which global gate could not be claimed.
-- Never describe a scoped check as the full repository gate.
-- Track which working-tree state each validation result covers. Reuse a still-current passing result instead of rerunning an expensive gate solely because the user asks to commit; rerun when relevant code or configuration changed afterward, or when the earlier check did not cover the final scope.
-- At the end of a batch, run integration and end-to-end checks that cross plan boundaries. If a later accepted change intentionally invalidates an earlier test assumption, update that test within the later plan's scope and record the reason.
-- After every commit, re-check status so user-owned changes cannot silently leak into the next plan.
+## Authorization and stop rules
 
-## Stop conditions
+- “Continue” selects and explains the next plan.
+- “Commit and continue” commits the accepted plan, then selects and explains the next.
+- A review request authorizes review work, not unrelated cleanup.
+- “Finish” does not waive approval or review gates without explicit batch authorization.
 
-Even under batch authorization, stop and ask when:
+Stop when work requires material unapproved scope, conflicting plans, destructive action, new
+credentials or authority, an external decision, or overlapping user changes that cannot be
+preserved. Also stop when validation exposes a cross-cutting failure outside authorized scope.
 
-- a required change materially expands product behavior, public contracts, or architecture beyond the plans;
-- plans conflict and there is no safe dependency-preserving interpretation;
-- completion needs new authority, destructive action, credentials, or an external decision;
-- unrelated user changes overlap the same code and cannot be preserved safely;
-- validation exposes a pre-existing or cross-cutting failure whose fix is not reasonably attributable to an authorized plan.
+Do not stop for ordinary implementation difficulty, stale line numbers, or small
+intent-preserving adjustments.
 
-Ordinary implementation difficulty, a stale line number, or a small intent-preserving deviation is not a reason to stop. Make progress, document the deviation, and continue.
+## Close the plan set
 
-## Preserve the gates
+After the final plan:
 
-- A request to “continue” after acceptance authorizes selecting and explaining the next plan, not implementing it.
-- A request to “commit and continue” authorizes committing the accepted plan and explaining the next one.
-- A review request authorizes inspection and feedback handling, not unrelated cleanup.
-- A terminal request such as “finish all plans” does not remove the per-plan approval and review gates unless the user explicitly changes this workflow. When they do, follow **Honor explicit batch authorization**.
-- When blocked by missing authority, external state, or a material design choice, report the blocker and wait rather than broadening scope.
+1. Reconcile every index status; keep externally pending plans `IN PROGRESS`.
+2. Confirm combined validation is current.
+3. Report commits, deviations, branch/upstream state, remaining changes, and plan artifact status.
+4. When later evidence completes a plan, update only its execution records unless code changes are
+   required; do not create an empty implementation commit.
