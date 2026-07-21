@@ -1,0 +1,32 @@
+{
+  "_comment": "Team/user config. Copy to config.json and edit. NEVER put the auth cookie here — that goes in the TIMESHEET_COOKIE env var at runtime. Committing project/task ids and sheet layout is fine and safe.",
+
+  "defaultLocation": "codecraftOffice",
+  "hoursPerDay": "08:00",
+
+  "projects": {
+    "iGoalZero": "6555e70c-a821-4d9f-903a-d3acfd4bb695",
+    "Training": "1f9dedac-9d66-4ef4-8d72-2ec8e876eb35"
+  },
+
+  "_taskNote": "name -> taskId, per project. Refresh with: GET /api/v2/task/list/{projectId}. A single default task is the common case (e.g. everything to Frontend - IGZ).",
+  "defaultTask": { "project": "iGoalZero", "task": "Frontend - IGZ", "taskId": "51be047f-c927-42a9-8872-decd56a4122d" },
+  "tasks": {
+    "iGoalZero": {
+      "Frontend - IGZ": "51be047f-c927-42a9-8872-decd56a4122d",
+      "Backend - IGZ": "ec63e9ce-81c3-4523-b306-d24cfdfa6dca",
+      "FullStack-IGZ": "0050172e-5c1f-48c0-b075-7e6e22a1fe7e",
+      "DevOps Task": "e20813dc-8544-4a0e-9900-3ea8e090f86c",
+      "Design": "86f23179-8878-43d7-91de-99894bf1fd3b"
+    }
+  },
+
+  "_sheetNote": "Describe YOUR team's spreadsheet so parsing is unambiguous. These are hints for the model, not a rigid parser.",
+  "sheetLayout": {
+    "kind": "weekly-team-sheet",
+    "description": "One sheet per week named like '4th May - 8th May'. Header row has columns: Name, Task Details, Hours Spent (sometimes a Days serial column). Rows are grouped per person; the Name cell is merged/only on the first row of each block — carry it forward. Filter to the target person.",
+    "columns": { "name": "Name", "description": "Task Details", "hours": "Hours Spent" },
+    "hoursAreIn": "hours",
+    "personToFilter": "Nikhil"
+  }
+}
