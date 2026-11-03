@@ -1,66 +1,81 @@
 ---
 name: summon-nikhil
-description: Use when asked to "summon Nikhil", "review this like Nikhil", "what would Nikhil say?", or check work against Nikhil's preferences before presenting it to him. Do not trigger for a generic review without that intent.
+description: Use when asked to "summon Nikhil", "review this like Nikhil", "what would Nikhil say?", or assess a design or change against Nikhil's preferences. Do not trigger for a generic review without that intent.
 ---
 
 # Summon Nikhil
 
-Review a piece of work through Nikhil's lens: what he would question, reject or accept, and what
-he would ask first. The output prepares work for him; it is not his approval.
+Assess what Nikhil would question, reject or accept. Give design advice or review findings;
+this skill does not edit files, stage changes, commit, or supply his approval. A calling workflow
+may implement the findings within its own authorization.
 
-## Before reviewing
+## Establish context
 
-1. **Pin the target.** A diff (staged, since a commit or branch), files, a design, docs or a plan.
-   Read all of it, not a sample.
-2. **Read the context it must fit.** The sibling modules it should match, the repository's own
-   instructions (`AGENTS.md`, `CLAUDE.md`, docs, decision records) and any project memory.
-3. **Load the lenses** in [principles](references/principles.md).
-4. **Let the repository win.** Its conventions and the session's agreements override the defaults
-   ([context rules](references/principles.md#context-rules)).
+- Pin the target: proposal, document, files, or diff with an explicit baseline. Read the whole
+  agreed target on the first pass; disclose any coverage limit instead of claiming a full review.
+- Read relevant repository instructions, owning decisions and sibling implementations, then
+  [principles](references/principles.md). Current user instructions and repository conventions
+  override these defaults. Discover the stack and paths here; do not import another project's rules.
+- Infer design versus review mode from the request. Ask only when the intended outcome is unclear.
+
+## Design advice
+
+For a proposed abstraction, state model, dependency or shared interface, assess the design before
+implementation spreads. Compare viable options, including the existing approach, and recommend
+the smallest coherent one. Show only relevant evidence:
+
+| Check | Evidence |
+| --- | --- |
+| Existing approach | Named sibling implementation or reference |
+| Accepted decision | Owning document, constraint and rationale |
+| Built-in option | Library/source capability checked |
+| Intended delta | Behavior changed and new concepts introduced |
+| State ownership | Authoritative facts versus derived state |
+
+Prefer repository references, then primary sources where local evidence is insufficient. Do not
+research every small edit or add an approval gate. Surface unresolved tradeoffs; changing an
+accepted decision requires the user's agreement. Recommend updates to its owning doc rather than
+creating a second decision register. Do not make those edits within this skill.
 
 ## Review
 
-Work through the lenses in order. Keep a finding only when it is:
+Apply relevant principles. Each finding must:
 
-1. **Grounded.** It points at `path:line` or the exact passage. If you cannot show it, drop it.
-2. **Proven.** Trace callers, read the sibling code and the upstream source, check real data. A
-   claim about reachability or "only N call sites" needs the search that shows it.
-3. **Widened.** Search for the same pattern elsewhere and report the instances together.
-4. **Weighed.** It names a concrete correctness, clarity, modelling or maintenance problem. Drop
-   textbook concerns, refactors for their own sake and anything the repository already decided.
+- Point to a location or exact passage and explain a concrete consequence.
+- Have supporting evidence: traced callers, a sibling comparison, source documentation or an
+  observed result. Claims about reachability or call-site counts need the corresponding search.
+- Account for accepted tradeoffs. Search for related instances within scope and group them;
+  report broader concerns separately without expanding the task.
 
-Prefer a few strong findings over many weak ones. Mark anything backed by neither the principles
-nor the code as `(inferred)`.
+Drop speculative defects, textbook concerns and refactors without a concrete benefit. Put a
+plausible but unverified concern under **Open questions**, naming the missing evidence. Separate
+inferred preferences from documented preferences; neither alone proves a code defect.
 
-## Output
+Report compactly; omit empty sections:
 
 ```markdown
-## Nikhil's review (simulated)
+**Nikhil's review (simulated)**
+**Verdict:** ready for user review / changes needed / insufficient evidence
+**Scope and evidence:** <target/revision, sources compared, checks actually run, coverage gaps>
 
-**Verdict:** ready for his review · changes needed · not convinced yet
+**Findings**
+- <severity> · `path:line` · <problem, consequence, evidence and recommendation>
 
-**Blockers**
-- `path:line` => <terse critique, often a question>? <one-line reason> (<lens>)
-
-**Questions**
-- `path:line` => <what he would ask>?
-
-**Nits**
-- `path:line` => <small fix>
-
-**Ask Nikhil:** <decisions that are genuinely his: product scope, naming taste between two good
-options, roadmap>
-
-**He'd ask first:** <the single question he would open with>
+**Open questions**
+- <missing evidence or user decision; recommended next step>
 ```
 
-- Write in his register: terse, direct, often a question ("is this really required?", "won't this
-  drift?"). Use correct spelling; do not imitate typing habits.
-- When proposing a change, give a recommendation and, where it is a real choice, the options,
-  including keeping it as it is. Never frame a "why" question as a call for a rewrite.
+Use plain, direct language and correct spelling, not an imitation of typing habits. Explain why
+new abstractions earn their place, which invalid states a model excludes, or which behavior a test
+protects when relevant. A “no findings” verdict still needs scope and evidence; source inspection
+is not runtime verification. Never treat a user's “why?” as permission to rewrite.
 
-## Guardrails
+## Further rounds
 
-- Critique only. Do not change files or repository state.
-- Never present the output as Nikhil's approval or sign anything in his name.
-- No personal data about him or anyone else in the output.
+Track the reviewed revision or uncommitted diff and each finding's status in the conversation:
+open, resolved, rejected with rationale, deferred with a revisit condition, or unverified.
+Review changed code and open findings next; widen coverage when dependencies warrant it. Reopen a
+settled finding only when new evidence or requirements invalidate its rationale.
+
+Do not expose credentials or unrelated personal data. Never sign in Nikhil's name or describe a
+simulated verdict as his authorization.

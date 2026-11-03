@@ -5,83 +5,102 @@ description: Use when the user asks for "guided review", "stage one by one", "re
 
 # Guided review
 
-Land work as commits the reviewer understands. The reviewer drives the pace with short replies;
-the agent scopes, prepares, presents, verifies and commits only when authorised.
+Prepare coherent commits the reviewer understands. Discover conventions, tooling and verification
+commands from the current repository; no particular stack or runtime helper is required.
 
-## 1. Establish scope
+## 1. Agree scope and authority
 
-1. Inventory staged, unstaged and untracked changes. Agree which files and hunks belong to this
-   review; leave everything else untouched and out of the index.
-2. Read the repository's instructions and conventions.
-3. Split the scope into standalone commits that each tell one story: foundations first, then each
-   flow in the order it executes; mechanical changes (codemods, renames, formatting) on their own.
-   Each commit builds and passes alone. Never stage an intermediate version that a later commit
-   rewrites.
-4. Present the plan and wait for it to be accepted.
+Inspect the branch/worktree, staged, unstaged and untracked changes, and relevant instructions.
+Identify the review scope; preserve unrelated working-tree and index changes. For multiple issues,
+map each to its base branch and scoped changes. Infer known choices from the session and Git.
 
-## 2. Prepare each commit
+Propose standalone commits in dependency order, each independently valid. Separate mechanical
+changes from behavior changes; avoid knowingly temporary implementations within a commit.
+State the review mode and commit policy once, carrying existing authorization forward:
 
-- Run the checks the commit affects (format, lint, type check, tests, migration drift, IDE
-  diagnostics). Note the state each ran against and rerun only what later changes invalidate;
-  keep expensive full suites for the final round.
-- Self-review the diff with the [summon-nikhil](../summon-nikhil/SKILL.md) lenses and fix obvious
-  issues. When a smell turns up, search for the same pattern.
-- Work in the mode agreed for the session: in-session by default, reviewer subagents only when
-  authorised. Verify every finding yourself before acting on it.
+| Mode | Who reviews | Progression |
+| --- | --- | --- |
+| Interactive (default) | User | Accept the plan, then approve each slice |
+| Delegated (explicit request only) | Designated reviewer, or summon-nikhil | Review and fix within the approved scope without per-slice user pauses |
 
-## 3. Present one slice
+Review delegation does not authorize commits. Commit only on explicit commit approval or under a
+standing commit-after-validation policy. A simulated verdict supplies evidence, not authorization.
+Use reviewer subagents only when authorized; otherwise review in-session. Silence never changes mode.
 
-A slice is a hunk, a file or a tightly coupled group the reviewer can understand on its own, staged
-exactly as it will be committed, with its tests. Order the slices to build understanding of one
-complete flow.
+Choose granularity from the change, respecting requests for finer review:
 
-```markdown
-Staged (<n> of <N>, commit <m> of <M>): `<path>`
+- **Mechanical:** one coherent batch; inspect all changes, present a representative diff, paths
+  and behavioral exceptions.
+- **Feature:** one complete user flow.
+- **Model or architecture:** one meaningful decision at a time.
 
-- <what changed, one bullet per change, in reading order>
-- <why, where it is not obvious>
+## 2. Prepare and verify
 
-Test (one line): <what the tests cover>
+Review with [summon-nikhil](../summon-nikhil/SKILL.md), verify its findings and fix issues within
+scope. The review skill remains advisory; this workflow performs authorized edits. Before a
+substantial correction, compare owning decisions and a named sibling implementation. Discuss
+unresolved design choices before expanding the change; record out-of-scope discoveries separately.
 
-Say "next" to stage <next slice>.
+Run checks appropriate to the change and repository policy. Track what state they cover, reuse
+current results, and rerun only checks invalidated by subsequent edits. Reserve expensive combined
+gates for the final round where appropriate; do not add redundant tests or require permanent tests
+when the session calls for temporary validation.
+
+For runtime checks, establish the actual target, checkout and build mode using existing tooling.
+Reuse intended services; do not assume local-only, production or isolated-worktree policy.
+For state/data changes, select relevant lifecycle boundaries—create, edit, clear, serialize, save,
+reload, navigate away/back—and affected sibling surfaces. For bugs or broad regression reviews,
+use [verification and coverage](references/review-state.md#verification-and-coverage).
+
+## 3. Stage and present
+
+A slice is a coherent hunk, file or group, including relevant tests. Stage it exactly as intended
+for the commit, in an order that explains the flow. “Staged” means visible in the user's normal
+Git index. Label scratch indexes/worktrees as validation artifacts, not visible staged work.
+
+For interactive review:
+
+```text
+Staged: slice <n>/<N>, commit <m>/<M> — <paths and exact lines>
+Changes: <what and why; representative example for a mechanical batch>
+Validation: <checks and observed results, or what remains unverified>
+Next: <next slice, or final verification if this is the last slice>
 ```
 
-Point to exact lines. Make every message self-contained: the reviewer may return from other work,
-so never rely on earlier scrollback.
-
-## 4. Handle feedback
+Make the presentation understandable without scrollback. Wait for slice approval before advancing.
+In delegated mode, use the same coherent scopes for reviewer handoffs without asking for “next”.
 
 | Reply | Action |
 | --- | --- |
-| "next" | The slice is approved; stage the next one. |
-| A question | Answer with evidence (the code, real data, the documentation). A "why" is not a rewrite request; offer a change only if warranted, with a recommendation and the option to keep it. |
-| A change request | Change the working tree, rerun the affected checks and re-stage. If approved slices change too, re-stage them and say which and why. |
-| A decision that is theirs | Ask, with a recommended option. |
-| A discovery (a bug, a stale doc, a missing test) | Fix it in this commit when in scope and say so; otherwise record it. |
+| “next” | Approve this slice and advance; after the last slice, run final verification. No commit authorization implied. |
+| A question | Answer with evidence and a recommendation; do not treat it as a rewrite request. |
+| A change request | Edit within scope, rerun affected checks and re-stage. Re-present changed approved slices in the agreed mode. |
+| “approved” | Apply to the proposal just presented. Slice approval alone does not authorize committing. |
 
-Do not move on until the current slice is approved.
+Stop for an unresolved decision outside the approved scope, not routine implementation difficulty.
 
-## 5. Final round
+## 4. Finish the commit
 
-1. Make one pass over the whole commit for dead code, ambiguity and correctness with the
-   summon-nikhil lenses.
-2. Anything it changes is re-staged, re-presented and approved again, with the affected checks
-   rerun.
-3. Verify the staged tree is the tested tree: only scoped changes are staged, nothing they need is
-   left out, and the full checks pass on exactly what is staged. When the index differs from the
-   working tree, check out the index in a scratch directory.
-4. Report honestly, including flaky or skipped tests, and propose the commit message in the
-   repository's format (default: one conventional-commit subject line, no body, no trailer).
+- Review the assembled commit for omissions, ambiguity and correctness. Re-review any resulting
+  edits in the agreed mode and rerun invalidated checks.
+- Ensure the intended commit tree matches the relevant tested state. If the index differs from
+  the working tree, validate the candidate tree in scratch space. Preserve unrelated staged work;
+  if it prevents a clean scoped commit, resolve that boundary rather than including or discarding it.
+- Report scoped changes, findings handled, validation and gaps. For bugs, include reproduction,
+  before/after evidence and user verification steps; distinguish inspection from execution.
+- Propose a commit message in the repository's format. Default to a conventional-commit subject
+  without a body or trailer unless context or instructions call for them.
+- If committing is authorized, commit only the reviewed scope and report the ID; otherwise stop
+  with it staged. Keep working notes out of the commit. Never amend or push unless asked.
 
-## 6. Commit
+Continue to the next planned commit under the same policy.
 
-- Commit only on explicit approval ("approved"). Never amend or push unless asked.
-- Keep untracked working notes out of every commit.
-- Report the commit ID and move to the next planned commit.
+## Resume and handoff
 
-## Unattended preparation
+At interruption, handoff, commit or mode-change boundaries, refresh the compact
+[checkpoint](references/review-state.md#checkpoint). On resume, reconcile it against actual Git
+state and artifacts before repeating work. Temporary progress belongs in the conversation or the
+existing scratch convention; durable decisions belong in owning docs.
 
-Only when the reviewer explicitly asks for it: run steps 1–5 with summon-nikhil as the reviewer,
-verifying and applying its findings. Stop before step 6 with the commit staged and a report of the
-plan, the findings and how each was handled. A pending reply is never permission to switch to this
-mode, and a person always approves the commit.
+Use the reference's RCA or cross-agent brief only when requested. Do not create a permanent diary
+or another tracking system for routine work.
